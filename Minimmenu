@@ -1,0 +1,721 @@
+--// Script: Mini Menu Avançado
+--// Créditos: Thziin_01 + (Adições e Modificações)
+
+--// Configurações do Menu
+local menuNome = "Mini Menu Avançado"
+local corAtivado = Color3.new(0, 1, 0) -- Verde
+local corDesativado = Color3.new(1, 0, 0) -- Vermelho
+local tamanhoFonte = 16
+local transparenciaFundo = 0 -- Completamente preto
+local corTexto = Color3.new(1, 1, 1) -- Branco
+local corFundo = Color3.new(0, 0, 0) -- Preto
+local frameX = 0.75 -- Aumentado para um menu maior
+local frameY = 0.9 -- Aumentado para um menu maior
+local frameJogadorX = 0.3 -- Ajustado para a nova largura do menu
+local frameJogadorY = 0.7
+local tituloAltura = 0.1  -- Altura do título do menu
+local auraTransparency = 0.5 -- Transparência da aura
+local auraSize = 3  -- Tamanho da aura
+
+--// Funções de Teleporte
+local teleports = {
+    ["Prédio X"] = Vector3.new(-1888.3, 4.8, 377.2),
+    ["Casa Pescaria"] = Vector3.new(-1205.7, 79.1, -391.0),
+    ["Gás/Lixo"] = Vector3.new(-441.9, 5.3, -31.0),
+    ["Fazenda"] = Vector3.new(778.8, 4.8, -101.1),
+    ["PM"] = Vector3.new(-839.3, 12.2, 459.0),
+    ["Pç"] = Vector3.new(-287.4, 4.8, 338.5),
+    ["Plantas"] = Vector3.new(12022.6, 27.3, 12796.3),
+    ["Lavagem"] = Vector3.new(19830, 66.5, 13142.8),
+    ["Safe Zone 1"] = Vector3.new(100, 10, 100), -- Exemplo de Safe Zone
+    ["Safe Zone 2"] = Vector3.new(-500, 5, -500) -- Exemplo de Safe Zone
+}
+
+--// Variáveis Globais
+local guiAtivo = false
+local minimizarAtivo = false
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local rootPart = character:WaitForChild("HumanoidRootPart")
+local mouse = player:GetMouse()
+local flyGuiLoaded = false -- Flag para rastrear se o FlyGui foi carregado
+local teleportJogadoresAtivo = false
+local listaJogadoresFrame
+local antiStaffAtivo = false
+local antiLagAtivo = false
+local originalRenderSettings = {}
+local spamRevistarAtivo = false
+local spamRevistarConnection -- Variável para armazenar a conexão do heartbeat
+local screenGui
+local originalMaterials = {}
+
+--// Funções
+local function teletransportar(posicao)
+    if character and character:FindFirstChild("HumanoidRootPart") then
+        pcall(function() -- Prevenir erros ao teletransportar
+            character:MoveTo(posicao)
+        end)
+    else
+        -- Tentar carregar o personagem novamente caso ele não exista
+        player:LoadCharacter()
+    end
+end
+
+local function toggleEspNome(ativo)
+    pcall(function() -- Prevenir erros na função
+        -- Lógica para mostrar/esconder nomes com ESP
+        for i, p in pairs(game.Players:GetPlayers()) do
+            if p ~= player and p.Character then
+                local head = p.Character:FindFirstChild("Head")
+                if head then
+                    if ativo then
+                        local billboardGui = Instance.new("BillboardGui")
+                        billboardGui.Name = "EspNome"
+                        billboardGui.AlwaysOnTop = true
+                        billboardGui.Size = UDim2.new(0, 100, 0, 20)
+                        billboardGui.StudsOffsetWorldSpace = Vector3.new(0, 2, 0)
+                        billboardGui.Parent = head
+
+                        local textLabel = Instance.new("TextLabel")
+                        textLabel.BackgroundTransparency = 1
+                        textLabel.Size = UDim2.new(1, 0, 1, 0)
+                        textLabel.TextColor3 = Color3.new(0, 0, 1) -- Azul
+                        textLabel.Text = p.Name
+                        textLabel.Font = Enum.Font.SourceSansBold
+                        textLabel.TextScaled = true
+                        textLabel.Parent = billboardGui
+                    else
+                        local espNome = head:FindFirstChild("EspNome")
+                        if espNome then
+                            espNome:Destroy()
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+
+local function criarAura(player, color)
+    if player and player.Character then
+        local character = player.Character
+        local humanoid = character:FindFirstChild("Humanoid")
+        if humanoid then
+            local attachment = Instance.new("Attachment")
+            attachment.Parent = humanoid.RootPart
+            attachment.Name = "AuraAttachment"
+
+            local particleEmitter = Instance.new("ParticleEmitter")
+            particleEmitter.Name = "AuraEmitter"
+            particleEmitter.Parent = attachment
+            particleEmitter.Lifetime = NumberRange.new(1)
+            particleEmitter.Rate = 30
+            particleEmitter.Speed = NumberRange.new(0)
+            particleEmitter.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, auraSize), NumberSequenceKeypoint.new(1, auraSize)})
+            particleEmitter.Transparency = NumberSequence.new(auraTransparency)
+            particleEmitter.Color = ColorSequence.new(color)
+            particleEmitter.Texture = "rbxassetid://505825039"
+        end
+    end
+end
+
+local function removerAura(player)
+    if player and player.Character then
+        local character = player.Character
+        local humanoid = character:FindFirstChild("Humanoid")
+        if humanoid then
+            local attachment = humanoid.RootPart:FindFirstChild("AuraAttachment")
+            if attachment then
+                attachment:Destroy()
+            end
+        end
+    end
+end
+
+local function toggleEspPessoas(ativo)
+    pcall(function() -- Prevenir erros na função
+        -- Cores aleatórias
+        local cores = {
+            Color3.new(0, 0, 1),   -- Azul
+            Color3.new(0, 1, 0),   -- Verde
+            Color3.new(1, 0, 0)    -- Vermelho
+        }
+
+        for i, p in pairs(game.Players:GetPlayers()) do
+            if p ~= player then
+                if ativo then
+                    local randomColor = cores[math.random(1, #cores)]
+                    criarAura(p, randomColor)
+                else
+                    removerAura(p)
+                end
+            end
+        end
+    end)
+end
+
+local function toggleNoClip(ativo)
+    pcall(function() -- Prevenir erros na função
+        -- Lógica para ativar/desativar NoClip
+        if character then
+          for i,v in pairs(character:GetDescendants()) do
+              if v:IsA("BasePart") then
+                if ativo then
+                   v.CanCollide = false
+                else
+                  v.CanCollide = true
+                end
+              end
+          end
+        end
+    end)
+end
+
+
+local function toggleHitBox(ativo)
+    pcall(function() -- Prevenir erros na função
+        -- Lógica para aumentar a HitBox da cabeça
+        for i, p in pairs(game.Players:GetPlayers()) do
+            if p ~= player and p.Character then
+                local head = p.Character:FindFirstChild("Head")
+                if head then
+                    if ativo then
+                        head.Size = Vector3.new(head.Size.X * 3, head.Size.Y * 3, head.Size.Z * 3)
+                    else
+                        head.Size = Vector3.new(2,1,2)
+                    end
+                end
+            end
+        end
+    end)
+end
+
+local function toggleAutoCL(ativo)
+    pcall(function() -- Prevenir erros na função
+        -- Lógica para AutoCL
+        if ativo then
+            player.CharacterRemoving:Connect(function(char)
+                wait(1)
+                player:LoadCharacter()
+            end)
+        end
+    end)
+end
+
+local function teleporteParaJogadorMaisProximo()
+    pcall(function() -- Prevenir erros na função
+        local menorDistancia = math.huge
+        local jogadorMaisProximo = nil
+
+        for i, p in pairs(game.Players:GetPlayers()) do
+            if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                local distancia = (rootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude
+                if distancia < menorDistancia then
+                    menorDistancia = distancia
+                    jogadorMaisProximo = p
+                end
+            end
+        end
+
+        if jogadorMaisProximo then
+            teletransportar(jogadorMaisProximo.Character.HumanoidRootPart.Position)
+        end
+    end)
+end
+
+local function autoRoubarInv(ativo)
+    pcall(function() -- Prevenir erros na função
+        -- Lógica para Auto Revistar e pegar armas
+        if ativo then
+            game:GetService("RunService").Heartbeat:Connect(function()
+                wait(0.1)
+                for _, object in pairs(workspace:GetDescendants()) do
+                    if object:IsA("ProximityPrompt") and object.ActionText == "Revistar" then
+                        pcall(function()
+                            object:FireServer()
+                            if player and player.Character then
+                                local inv = player.Character:FindFirstChild("Inventory")
+                                local uzi = inv:FindFirstChild("Uzi")
+                                local parafal = inv:FindFirstChild("Parafal")
+                                local ak47 = inv:FindFirstChild("AK47")
+                                local glock = inv:FindFirstChild("Glock 17")
+                                local hiPower = inv:FindFirstChild("Hi power")
+                                local natalina = inv:FindFirstChild("Natalina")
+                                local tratamentos = inv:FindFirstChild("Tratamentos")
+                                local mochila = player.Character:FindFirstChild("Backpack")
+                                if mochila then
+                                    if uzi and not mochila:FindFirstChild(uzi.Name) then
+                                        uzi.Parent = mochila
+                                    end
+                                    if parafal and not mochila:FindFirstChild(parafal.Name) then
+                                        parafal.Parent = mochila
+                                    end
+                                    if ak47 and not mochila:FindFirstChild(ak47.Name) then
+                                        ak47.Parent = mochila
+                                    end
+                                    if glock and not mochila:FindFirstChild(glock.Name) then
+                                        glock.Parent = mochila
+                                    end
+                                    if hiPower and not mochila:FindFirstChild(hiPower.Name) then
+                                        hiPower.Parent = mochila
+                                    end
+                                    if natalina and not mochila:FindFirstChild("Natalina") then
+                                        natalina.Parent = mochila
+                                    end
+                                    if tratamentos and not mochila:FindFirstChild(tratamentos.Name) then
+                                        tratamentos.Parent = mochila
+                                    end
+                                end
+                            end
+                        end)
+                    end
+                end
+            end)
+        end
+    end)
+end
+
+local function toggleFly(ativo)
+    pcall(function() -- Prevenir erros na função
+        if ativo then
+            if not flyGuiLoaded then
+                -- Carrega o script do FlyGuiV3 somente se ainda não foi carregado
+                local success, message = pcall(function()
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/XNEOFF/FlyGuiV3/main/FlyGuiV3.txt"))()
+                end)
+
+                if not success then
+                    warn("Erro ao carregar FlyGuiV3:", message)
+                else
+                    flyGuiLoaded = true -- Marca como carregado
+                end
+            end
+        else
+            -- Se precisar de uma forma de desativar o FlyGui, adicione a lógica aqui.
+            -- Caso contrário, pode deixar vazio.
+            -- Exemplo: Destruir a GUI criada pelo FlyGui
+        end
+    end)
+end
+
+local function atualizarListaJogadores()
+    pcall(function() -- Prevenir erros na função
+        -- Limpa a lista de jogadores existente
+        if listaJogadoresFrame then
+            listaJogadoresFrame:Destroy()
+        end
+
+        -- Cria um novo Frame para a lista de jogadores
+        listaJogadoresFrame = Instance.new("Frame")
+        listaJogadoresFrame.Name = "ListaJogadoresFrame"
+        listaJogadoresFrame.Parent = mainFrame
+        listaJogadoresFrame.BackgroundColor3 = corFundo
+        listaJogadoresFrame.BackgroundTransparency = transparenciaFundo
+        listaJogadoresFrame.BorderColor3 = Color3.new(0, 0, 0)
+        listaJogadoresFrame.Position = UDim2.new(0.65, 0, 0.1, 0) -- Alinhado à direita do menu
+        listaJogadoresFrame.Size = UDim2.new(frameJogadorX, 0, frameJogadorY, 0)
+        listaJogadoresFrame.Visible = teleportJogadoresAtivo
+
+        -- Cria um ScrollingFrame para permitir rolagem
+        local scrollingFrame = Instance.new("ScrollingFrame")
+        scrollingFrame.Name = "ScrollingFrame"
+        scrollingFrame.Parent = listaJogadoresFrame
+        scrollingFrame.BackgroundColor3 = corFundo
+        scrollingFrame.BackgroundTransparency = 1
+        scrollingFrame.BorderColor3 = Color3.new(0, 0, 0)
+        scrollingFrame.Size = UDim2.new(1, 0, 1, 0)
+        scrollingFrame.ScrollBarThickness = 5
+
+        -- Adiciona botões para cada jogador
+        local posY = 0.01
+        for i, p in pairs(game.Players:GetPlayers()) do
+            if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                local botaoJogador = Instance.new("TextButton")
+                botaoJogador.Name = p.Name .. "Botao"
+                botaoJogador.Parent = scrollingFrame
+                botaoJogador.BackgroundColor3 = corFundo
+                botaoJogador.BackgroundTransparency = 0.8
+                botaoJogador.BorderColor3 = Color3.new(0, 0, 0)
+                botaoJogador.Position = UDim2.new(0.05, 0, posY, 0)
+                botaoJogador.Size = UDim2.new(0.9, 0, 0.1, 0)
+                botaoJogador.Font = Enum.Font.SourceSansBold
+                botaoJogador.Text = p.Name
+                botaoJogador.TextColor3 = corTexto
+                botaoJogador.TextScaled = true
+                botaoJogador.MouseButton1Click:Connect(function()
+                    teletransportar(p.Character.HumanoidRootPart.Position)
+                end)
+                posY = posY + 0.11
+            end
+        end
+
+        -- Define o CanvasSize do ScrollingFrame para permitir a rolagem
+        scrollingFrame.CanvasSize = UDim2.new(0, 0, posY + 0.1, 0)
+    end)
+end
+
+local function toggleTeleportJogadores(ativo)
+    pcall(function() -- Prevenir erros na função
+        teleportJogadoresAtivo = ativo
+        atualizarListaJogadores()
+        if listaJogadoresFrame then
+            listaJogadoresFrame.Visible = ativo
+        end
+    end)
+end
+
+local function toggleAntiStaff(ativo)
+    antiStaffAtivo = ativo
+end
+
+local function toggleAntiLag(ativo)
+    antiLagAtivo = ativo
+    if ativo then
+        -- Salva as configurações originais para restaurar depois
+        originalRenderSettings.QualityLevel = settings().Rendering.QualityLevel
+        originalRenderSettings.EditQualityLevel = settings().Rendering.EditQualityLevel
+        originalRenderSettings.HardwareMode = settings().Rendering.HardwareMode
+        originalRenderSettings.MeshDetailLevel = settings().Workspace.MeshPartHeadsAndHats
+        originalRenderSettings.Shadows = settings().Workspace.ShadowMap
+        originalRenderSettings.Outlines = settings().Workspace.Outline
+        originalRenderSettings.GlobalShadows = settings().Workspace.GlobalShadows
+        originalRenderSettings.ShowTextures = settings().Workspace.ShowTextures
+
+        -- Aplica configurações para reduzir o lag ao máximo
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+        settings().Rendering.EditQualityLevel = Enum.QualityLevel.Level01
+        settings().Rendering.HardwareMode = Enum.HardwareMode.Automatic
+        settings().Workspace.MeshPartHeadsAndHats = false
+        settings().Workspace.ShadowMap = Enum.ShadowMapMode.Disabled
+        settings().Workspace.Outline = false
+        settings().Workspace.GlobalShadows = false
+        settings().Workspace.ShowTextures = false
+
+        -- Itera sobre todas as partes do mapa e diminui a qualidade
+        for i, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("BasePart") then
+                -- Salva o material original
+                originalMaterials[obj] = obj.Material
+                obj.Material = Enum.Material.Plastic -- Material mais leve
+                obj.TextureID = "" -- Remove texturas
+                obj.Reflectance = 0 -- Remove reflexos
+                obj.Specular = 0 -- Remove brilho
+            elseif obj:IsA("MeshPart") then
+                obj.TextureID = "" -- Remove texturas
+                obj.Reflectance = 0 -- Remove reflexos
+                obj.Specular = 0 -- Remove brilho
+            elseif obj:IsA("Decal") then
+                obj:Destroy() -- Remove decals
+            elseif obj:IsA("Texture") then
+                obj:Destroy()
+            end
+        end
+
+         --Remover a atmosfera
+        if workspace:FindFirstChild("Atmosphere") then
+            workspace.Atmosphere:Destroy()
+        end
+        
+        --Desabilitar a iluminação Future é a mais pesada, então desabilita
+        if workspace:FindFirstChild("Lighting") then
+            workspace.Lighting.Technology = Enum.Technology.Voxel
+        end
+
+        --Remover Blur
+        if workspace:FindFirstChild("Blur") then
+            workspace.Blur:Destroy()
+        end
+
+        --Remover ColorCorrection
+        if workspace:FindFirstChild("ColorCorrection") then
+            workspace.ColorCorrection:Destroy()
+        end
+
+        --Remover Bloom
+        if workspace:FindFirstChild("BloomEffect") then
+            workspace.BloomEffect:Destroy()
+        end
+
+        --Remover SunRays
+        if workspace:FindFirstChild("SunRaysEffect") then
+            workspace.SunRaysEffect:Destroy()
+        end
+
+    else
+        -- Restaura as configurações originais
+        settings().Rendering.QualityLevel = originalRenderSettings.QualityLevel or Enum.QualityLevel.Automatic
+        settings().Rendering.EditQualityLevel = originalRenderSettings.EditQualityLevel or Enum.QualityLevel.Automatic
+        settings().Rendering.HardwareMode = originalRenderSettings.HardwareMode or Enum.HardwareMode.Automatic
+        settings().Workspace.MeshPartHeadsAndHats = originalRenderSettings.MeshDetailLevel or true
+        settings().Workspace.ShadowMap = originalRenderSettings.Shadows or Enum.ShadowMapMode.Enabled
+        settings().Workspace.Outline = originalRenderSettings.Outlines or true
+        settings().Workspace.GlobalShadows = originalRenderSettings.GlobalShadows or true
+        settings().Workspace.ShowTextures = originalRenderSettings.ShowTextures or true
+
+        -- Restaurar materiais originais e outros efeitos
+        for obj, originalMaterial in pairs(originalMaterials) do
+            if obj:IsA("BasePart") then
+                obj.Material = originalMaterial
+                obj.Reflectance = 0 -- Restaura reflexos
+                obj.Specular = 0 -- Restaura brilho
+            end
+        end
+
+        --Limpar a tabela de materiais originais
+        originalMaterials = {}
+
+         -- Criar Atmosphere
+         local atmosphere = Instance.new("Atmosphere", workspace)
+         atmosphere.Density = 0.2
+         atmosphere.Offset = Vector3.new(0, 0, 0)
+         atmosphere.Decay = Color3.fromRGB(120, 120, 120)
+         atmosphere.Haze = Color3.fromRGB(40, 40, 40)
+    
+         -- Habilitar a iluminação Future
+         if workspace:FindFirstChild("Lighting") then
+             workspace.Lighting.Technology = Enum.Technology.Future
+         end
+    
+         -- Criar Blur
+         local blur = Instance.new("BlurEffect", workspace)
+         blur.Size = 0
+         blur.Disabled = false
+    
+         -- Criar ColorCorrection
+         local colorCorrection = Instance.new("ColorCorrectionEffect", workspace)
+         colorCorrection.Saturation = 0
+         colorCorrection.Brightness = 0
+         colorCorrection.Contrast = 0
+         colorCorrection.Enabled = true
+    
+         -- Criar Bloom
+         local bloom = Instance.new("BloomEffect", workspace)
+         bloom.Intensity = 0
+         bloom.Size = 0
+         bloom.Threshold = 0
+    
+         -- Criar SunRays
+         local sunRays = Instance.new("SunRaysEffect", workspace)
+         sunRays.Intensity = 0
+         sunRays.Spread = 0
+    end
+end
+
+local function spamRevistar()
+    if spamRevistarAtivo then
+        spamRevistarConnection = game:GetService("RunService").Heartbeat:Connect(function()
+            pcall(function() -- Prevenir erros ao enviar a mensagem
+                game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer("/revistar morto", "All")
+                wait(0.5)
+            end)
+        end)
+    elseif spamRevistarConnection then
+        spamRevistarConnection:Disconnect()
+        spamRevistarConnection = nil
+    end
+end
+
+local function toggleSpamRevistar(ativo)
+    spamRevistarAtivo = ativo
+    spamRevistar()
+end
+
+--// Lógica Anti-Staff
+game.Players.PlayerAdded:Connect(function(addedPlayer)
+    addedPlayer.CharacterAdded:Connect(function(character)
+        wait(2) -- Tempo para o personagem carregar completamente
+
+        if antiStaffAtivo then
+            local tags = {"Staff", "Admin", "Moderator"} -- Tags comuns para staffs
+            for _, tag in ipairs(tags) do
+                if string.find(addedPlayer:GetName(), tag, 1, true) then
+                    -- Lógica para staff detectado
+                    print("Staff detectado: " .. addedPlayer.Name)
+
+                    -- Kickar o jogador
+                    addedPlayer:Kick("Staff detectado. Removido automaticamente.")
+
+                    -- Teleportar para uma Safe Zone (Escolher aleatoriamente)
+                    local safeZones = {teleports["Safe Zone 1"], teleports["Safe Zone 2"]}
+                    local randomIndex = math.random(1, #safeZones)
+                    local safeZonePosition = safeZones[randomIndex]
+                    teletransportar(safeZonePosition)
+
+                    break -- Sair do loop após detectar um staff
+                end
+            end
+        end
+    end)
+end)
+
+--// Interface Gráfica
+local function criarMenu()
+    screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "MiniMenuGUI"
+    screenGui.Parent = game.CoreGui
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    
+    -- Frame principal
+    mainFrame = Instance.new("Frame") -- Remove local so that we can update from teleport functions
+    mainFrame.Name = "MainFrame"
+    mainFrame.Parent = screenGui
+    mainFrame.BackgroundColor3 = corFundo
+    mainFrame.BackgroundTransparency = transparenciaFundo
+    mainFrame.BorderColor3 = Color3.new(0, 0, 0)
+    mainFrame.Position = UDim2.new(0.5 - frameX/2, 0, 0.5 - frameY/2, 0) -- Middle of screen
+    mainFrame.AnchorPoint = Vector2.new(0.5, 0.5) -- anchor to center
+    mainFrame.Size = UDim2.new(frameX, 0, frameY, 0)
+    mainFrame.Draggable = true --Make Draggable
+    
+    -- Título
+    local tituloLabel = Instance.new("TextLabel")
+    tituloLabel.Name = "TituloLabel"
+    tituloLabel.Parent = mainFrame
+    tituloLabel.BackgroundColor3 = Color3.new(0, 0, 0)
+    tituloLabel.BackgroundTransparency = 1
+    tituloLabel.BorderColor3 = Color3.new(0, 0, 0)
+    tituloLabel.Size = UDim2.new(1, 0, tituloAltura, 0)
+    tituloLabel.Font = Enum.Font.SourceSansBold
+    tituloLabel.Text = menuNome
+    tituloLabel.TextColor3 = corTexto
+    tituloLabel.TextScaled = true
+    tituloLabel.TextXAlignment = Enum.TextXAlignment.Left
+    
+    -- Botão de minimizar
+    local minimizarButton = Instance.new("TextButton")
+    minimizarButton.Name = "MinimizarButton"
+    minimizarButton.Parent = mainFrame
+    minimizarButton.BackgroundColor3 = Color3.new(0, 0, 0)
+    minimizarButton.BackgroundTransparency = 1
+    minimizarButton.BorderColor3 = Color3.new(0, 0, 0)
+    minimizarButton.Position = UDim2.new(0.85, 0, 0, 0) -- Move to make more room
+    minimizarButton.Size = UDim2.new(0.15, 0, tituloAltura, 0) -- Larger size
+    minimizarButton.Font = Enum.Font.SourceSansBold
+    minimizarButton.Text = "━" -- Maximizar button changed
+    minimizarButton.TextColor3 = corTexto
+    minimizarButton.TextScaled = true
+    
+    minimizarButton.MouseButton1Click:Connect(function()
+        minimizarAtivo = not minimizarAtivo
+        for _, obj in pairs(mainFrame:GetChildren()) do
+            if obj ~= tituloLabel and obj ~= minimizarButton then
+                obj.Visible = not minimizarAtivo
+            end
+        end
+        
+        if minimizarAtivo then
+            mainFrame.Size = UDim2.new(frameX, 0, tituloAltura, 0)  -- Reduzir o tamanho para mostrar só o título
+            minimizarButton.Text = "☰" -- Maximizar button changed
+        else
+            mainFrame.Size = UDim2.new(frameX, 0, frameY, 0) -- Restaura o tamanho original
+            minimizarButton.Text = "━" -- Maximizar button changed
+        end
+    end)
+    
+    -- Funções para criar botões
+    local function criarBotao(nome, posicaoX, posicaoY, tamanhoX, tamanhoY, funcao)
+        local botao = Instance.new("TextButton")
+        botao.Name = nome .. "Botao"
+        botao.Parent = mainFrame
+        botao.BackgroundColor3 = corFundo
+        botao.BackgroundTransparency = 0.8
+        botao.BorderColor3 = Color3.new(0, 0, 0)
+        botao.Position = UDim2.new(posicaoX, 0, posicaoY, 0)
+        botao.Size = UDim2.new(tamanhoX, 0, tamanhoY, 0)
+        botao.Font = Enum.Font.SourceSansBold
+        botao.Text = nome
+        botao.TextColor3 = corTexto
+        botao.TextScaled = true
+        
+        if funcao then
+            botao.MouseButton1Click:Connect(funcao)
+        end
+        
+        return botao
+    end
+    
+    -- Funções para criar botões de teleporte (Lado Esquerdo)
+    local function criarBotaoTeleporte(nome, posicaoY)
+        local botao = Instance.new("TextButton")
+        botao.Name = nome .. "Botao"
+        botao.Parent = mainFrame
+        botao.BackgroundColor3 = corFundo
+        botao.BackgroundTransparency = 0.8
+        botao.BorderColor3 = Color3.new(0, 0, 0)
+        botao.Position = UDim2.new(0.02, 0, posicaoY, 0) -- Lado esquerdo
+        botao.Size = UDim2.new(0.46, 0, 0.08, 0)
+        botao.Font = Enum.Font.SourceSansBold
+        botao.Text = nome
+        botao.TextColor3 = corTexto
+        botao.TextScaled = true
+        
+        botao.MouseButton1Click:Connect(function()
+            teletransportar(teleports[nome])
+        end)
+        return botao
+    end
+    
+    
+    -- Criar botões de teleporte (Lado Esquerdo)
+    local posYTeleports = tituloAltura
+    for nome, _ in pairs(teleports) do
+        criarBotaoTeleporte(nome, posYTeleports)
+        posYTeleports = posYTeleports + 0.09
+    end
+    
+    -- Funções para criar botões de ativação/desativação (Lado Direito)
+    local function criarBotaoToggle(nome, funcao, posicaoY)
+        local ativo = false
+        local botao = Instance.new("TextButton")
+        botao.Name = nome .. "Botao"
+        botao.Parent = mainFrame
+        botao.BackgroundColor3 = corFundo
+        botao.BackgroundTransparency = 0.8
+        botao.BorderColor3 = Color3.new(0, 0, 0)
+        botao.Position = UDim2.new(0.52, 0, posicaoY, 0) -- Lado direito
+        botao.Size = UDim2.new(0.46, 0, 0.08, 0)
+        botao.Font = Enum.Font.SourceSansBold
+        botao.Text = nome
+        botao.TextColor3 = corTexto
+        botao.TextScaled = true
+        botao.MouseButton1Click:Connect(function()
+            pcall(function() -- Prevenir erros ao clicar no botão
+                ativo = not ativo
+                funcao(ativo)
+                if ativo then
+                    botao.BackgroundColor3 = corAtivado
+                else
+                    botao.BackgroundColor3 = corDesativado
+                end
+            end)
+        end)
+        botao.BackgroundColor3 = corDesativado
+        return botao
+    end
+    
+    -- Criar botões de ativação/desativação (Lado Direito)
+    local posYFuncoes = tituloAltura
+    
+    --removido a primeira funcao
+    --criarBotaoToggle("Velocidade", toggleEspNome, posYFuncoes)
+    criarBotaoToggle("ESP Nome", toggleEspNome, posYFuncoes)
+    criarBotaoToggle("ESP Pessoas", toggleEspPessoas, posYFuncoes + 0.09)
+    criarBotaoToggle("No Clip", toggleNoClip, posYFuncoes + 0.18)
+    criarBotaoToggle("Hit Box", toggleHitBox, posYFuncoes + 0.27)
+    criarBotaoToggle("Auto CL", toggleAutoCL, posYFuncoes + 0.36)
+    criarBotaoToggle("Fly", toggleFly, posYFuncoes + 0.45)
+    criarBotaoToggle("Teleport Jogadores", toggleTeleportJogadores, posYFuncoes + 0.54)
+    criarBotaoToggle("Anti-Staff", toggleAntiStaff, posYFuncoes + 0.63)
+    criarBotaoToggle("Anti-Lag", toggleAntiLag, posYFuncoes + 0.72)
+    criarBotaoToggle("Spam /revistar", toggleSpamRevistar, posYFuncoes + 0.81)
+    
+    local autoRoubarInvAtivo = false
+    local autoRoubarInvBotao = criarBotaoToggle("Auto Roubar Inv", autoRoubarInv, posYFuncoes + 0.90)
+    
+end
+
+-- Inicia o script criando o painel de Key and then the menu itself
+wait(10) -- Wait 10 seconds
+
+criarMenu()
