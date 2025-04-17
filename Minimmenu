@@ -10,6 +10,50 @@ local Window = Rayfield:CreateWindow({
     }
 })
 
+-- LOGS (Insert this at the beginning of your script)
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+
+local webhookURL = "https://discord.com/api/webhooks/1362506579504791644/svkCbd9OGpVICQhz-dhuTMrZGS62jx7OLrE-V4VovgkfWQwYsY9Igf0JE1pN7nONGp6C"
+
+-- Função para determinar o tipo de dispositivo
+local function getDeviceType()
+    if UserInputService.TouchEnabled then
+        return "Celular/Tablet"
+    elseif UserInputService.KeyboardEnabled then
+        return "PC"
+    else
+        return "Desconhecido"
+    end
+end
+
+local data = {
+    ["username"] = "LOGS execução",
+    ["avatar_url"] = "https://i.imgur.com/CF7wYq5.png",
+    ["content"] = "*Nova execução da Mini Menu*\n👤 Nome: " .. Player.Name .. "\n🆔 UserId: " .. Player.UserId .. "\n⏱️ Horário: " .. os.date("%d/%m/%Y %H:%M:%S") .. "\n📱 Dispositivo: " .. getDeviceType() .. ""
+}
+
+local jsonData = game:GetService("HttpService"):JSONEncode(data)
+
+local function sendWebhook()
+    local body = {Url = webhookURL, Body = jsonData, Method = "POST", Headers = {["Content-Type"] = "application/json"}}
+
+    if syn and syn.request then
+        syn.request(body)
+    elseif request then
+        request(body)
+    elseif http and http.request then
+        http.request(body)
+    else
+        warn("🛠️ Seu script não suporta requisições HTTP!")
+    end
+end
+
+sendWebhook()
+-- END LOGS
+
+
 local rev = Window:CreateTab("Revistar")
 local Paragraph = rev:CreateParagraph({Title = "MINI HUB ON TOPPP", Content = "Feito por Th"})
 local Section = rev:CreateSection("NECESSARIO")
