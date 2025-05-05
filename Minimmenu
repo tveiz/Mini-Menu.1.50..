@@ -1,63 +1,198 @@
--- Função para deletar todas as NotifyGui
-local function deletarNotifyGui()
-    local playerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
-    for _, gui in ipairs(playerGui:GetChildren()) do
-        if gui.Name == "NotifyGui" and gui:IsA("ScreenGui") then
-            gui:Destroy()
-        end
-    end
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+
+-- Carrega o Aimbot
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/Aimbot-V2/main/Resources/Scripts/Raw%20Main.lua"))()
+
+-- Carrega o Rayfield
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+-- ConfiguraÃ§Ãµes padrÃ£o do Aimbot
+if not getgenv().Aimbot then
+    getgenv().Aimbot = {
+        Settings = {
+            Enabled = false,
+            AliveCheck = false,
+            TeamCheck = false,
+            Sensitivity = 0,
+            LockPart = "Head",
+            SaveSettings = true,
+            TriggerKey = "MouseButton2"
+        },
+        FOVSettings = {
+            Enabled = false,
+            Color = "255, 255, 255",
+            Amount = 90
+        }
+    }
 end
 
--- Lista de itens para pegar
-local itens = {
-    "AK47", "Uzi", "PARAFAL", "Faca", "IA2", "G3",
-    "Hi Power", "Natalina", "AR-15", "C4", "Escudo", "Glock 17"
-}
+-- CriaÃ§Ã£o da janela
+local Window = Rayfield:CreateWindow({
+    Name = "MINI HUB FREE",
+    LoadingTitle = "HUB MENU",
+    LoadingSubtitle = "MINI HUB SUS",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "AimbotConfig",
+        FileName = "Settings.json"
+    },
+    Discord = {
+        Enabled = false,
+        Invite = "noinvite",
+        RememberJoins = true
+    }
+})
 
--- Argumentos pré-alocados para a requisição
-local args = {
-    [1] = "mudaInv",
-    [2] = "2",         -- Slot (será alterado no loop)
-    [3] = "ItemName",  -- Nome do item (será alterado no loop)
-    [4] = "1"
-}
+-- Aba de Aimbot
+local Tab = Window:CreateTab("Aimbot-PC")
 
--- Executa apenas no cliente
-if game:GetService("RunService"):IsClient() then
-    coroutine.wrap(function()
-        while true do
-            deletarNotifyGui()
+-- SeÃ§Ã£o de configuraÃ§Ã£o do Aimbot
+local Section11 = Tab:CreateSection("aim config")
 
-            for i, item in ipairs(itens) do
-                if i <= 16 then
-                    args[2] = tostring(i)
-                    args[3] = item
+Tab:CreateToggle({
+    Name = "ativar aimbot",
+    CurrentValue = getgenv().Aimbot.Settings.Enabled,
+    Flag = "AimbotEnabled",
+    Callback = function(Value)
+        getgenv().Aimbot.Settings.Enabled = Value
+    end,
+})
 
-                    task.spawn(function()
-                        local replicatedStorage = game:GetService("ReplicatedStorage")
-                        local modules = replicatedStorage:FindFirstChild("Modules")
-                        if modules then
-                            local InvRemotes = modules:FindFirstChild("InvRemotes")
-                            if InvRemotes then
-                                local InvRequest = InvRemotes:FindFirstChild("InvRequest")
-                                if InvRequest then
-                                    pcall(function()
-                                        InvRequest:InvokeServer(unpack(args))
-                                    end)
-                                else
-                                    warn("InvRequest não encontrado")
-                                end
-                            else
-                                warn("InvRemotes não encontrado")
-                            end
-                        else
-                            warn("Modules não encontrado")
-                        end
-                    end)
-                end
+Tab:CreateToggle({
+    Name = "verificar se estÃ¡ vivo",
+    CurrentValue = getgenv().Aimbot.Settings.AliveCheck,
+    Flag = "AliveCheck",
+    Callback = function(Value)
+        getgenv().Aimbot.Settings.AliveCheck = Value
+    end,
+})
+
+Tab:CreateToggle({
+    Name = "verificar time",
+    CurrentValue = getgenv().Aimbot.Settings.TeamCheck,
+    Flag = "TeamCheck",
+    Callback = function(Value)
+        getgenv().Aimbot.Settings.TeamCheck = Value
+    end,
+})
+
+Tab:CreateSlider({
+    Name = "sensibilidade do aimbot",
+    Range = {0, 1},
+    Increment = 0.1,
+    Suffix = "s",
+    CurrentValue = getgenv().Aimbot.Settings.Sensitivity,
+    Flag = "Sensitivity",
+    Callback = function(Value)
+        getgenv().Aimbot.Settings.Sensitivity = Value
+    end,
+})
+
+-- SeÃ§Ã£o de configuraÃ§Ã£o do FOV
+local Section = Tab:CreateSection("fov config")
+
+Tab:CreateToggle({
+    Name = "ativar fov",
+    CurrentValue = getgenv().Aimbot.FOVSettings.Enabled,
+    Flag = "FOVEnabled",
+    Callback = function(Value)
+        getgenv().Aimbot.FOVSettings.Enabled = Value
+    end,
+})
+
+Tab:CreateSlider({
+    Name = "tamanho do fov",
+    Range = {0, 360},
+    Increment = 1,
+    Suffix = "Â°",
+    CurrentValue = getgenv().Aimbot.FOVSettings.Amount,
+    Flag = "FOVSize",
+    Callback = function(Value)
+        getgenv().Aimbot.FOVSettings.Amount = Value
+    end,
+})
+
+Tab:CreateButton({
+    Name = "salvar configuraÃ§Ãµes",
+    Callback = function()
+        getgenv().Aimbot.Settings.SaveSettings = true
+        Rayfield:Notify({
+            Title = "ConfiguraÃ§Ãµes Salvas",
+            Content = "Suas configuraÃ§Ãµes foram salvas.",
+            Duration = 3,
+            Image = 4483362458,
+            Actions = {
+                Ignore = {
+                    Name = "Ok",
+                    Callback = function()
+                        print("ConfiguraÃ§Ãµes salvas.")
+                    end
+                },
+            },
+        })
+    end,
+})
+
+-- Aba de Auto CL (Auto Kick)
+local AutoCLTab = Window:CreateTab("Auto CL", 4483362458)
+
+local AutoCLSection = AutoCLTab:CreateSection("ConfiguraÃ§Ã£o de Auto Kick")
+
+AutoCLTab:CreateToggle({
+    Name = "Ativar Auto CL (kick)",
+    CurrentValue = getgenv().KickOnLowHealth or false,
+    Flag = "AutoKickToggle",
+    Callback = function(Value)
+        getgenv().KickOnLowHealth = Value
+    end,
+})
+
+AutoCLTab:CreateSlider({
+    Name = "Kick quando vida for menor ou igual a",
+    Range = {0, 100},
+    Increment = 1,
+    Suffix = " HP",
+    CurrentValue = getgenv().HealthThreshold or 10,
+    Flag = "HealthThresholdSlider",
+    Callback = function(Value)
+        getgenv().HealthThreshold = Value
+    end,
+})
+
+-- Aba de Teleport
+local TeleportTab = Window:CreateTab("Teleport")
+
+local Section = TeleportTab:CreateSection("TELEPORTS")
+
+local function addTeleportButton(name, cframe)
+    TeleportTab:CreateButton({
+        Name = name,
+        Callback = function()
+            local player = game.Players.LocalPlayer
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                player.Character:SetPrimaryPartCFrame(cframe + Vector3.new(0, 3, 0))
             end
-
-            task.wait(0.1)
-        end
-    end)()
+        end,
+    })
 end
+
+-- BotÃµes de teleporte corrigidos com nomes UTF-8
+addTeleportButton("Teleport PraÃ§a", CFrame.new(-291.579559, 3.26299787, 342.192535))
+addTeleportButton("Teleport GÃ¡s", CFrame.new(-469.959015, 3.25349784, -54.3936005))
+addTeleportButton("Teleport HP", CFrame.new(-543.439941, 3.26299858, 645.16864))
+addTeleportButton("Teleport Tabacaria", CFrame.new(-83.1141129, 13.1430578, 74.7073364))
+addTeleportButton("Teleport Garagem", CFrame.new(-466.870148, 7.64567232, 350.242737))
+addTeleportButton("Teleport ConcessionÃ¡ria", CFrame.new(-91.3902893, 8.07136822, 520.355347))
+addTeleportButton("Teleport Gari", CFrame.new(-518.672852, 3.16749811, -1.16962147, 0, 0, -1, 0, 1, 0, 1, 0, 0))
+addTeleportButton("Teleport ImobiliÃ¡ria", CFrame.new(-284.904785, 8.26088619, -72.2896194, 0, 0, -1, 0, 1, 0, 1, 0, 0))
+addTeleportButton("Teleport PM", CFrame.new(-980.181458, 2.27553082, 467.080536, 1, 0, 0, 0, 1, 0, 0, 0, 1))
+addTeleportButton("Teleport PRF", CFrame.new(6662.24512, 36.6637421, 5047.83838, 0.707134247, 0, 0.707079291, 0, 1, 0, -0.707079291, 0, 0.707134247))
+addTeleportButton("Teleport MineraÃ§Ã£o", CFrame.new(201.932144, 2.76136589, 145.50531, 0, 0, 1, 0, 1, -0, -1, 0, 0))
+addTeleportButton("Teleport MecÃ¢nica", CFrame.new(-180.608261, 3.29813337, -532.4151, 0.422592998, -0, -0.906319618, 0, 1, -0, 0.906319618, 0, 0.422592998))
+addTeleportButton("Teleport Fazenda", CFrame.new(817.243225, 3.26249814, -87.316864, 0, 0, 1, 0, 1, 0, -1, 0, 0))
+addTeleportButton("Teleport Prefeitura", CFrame.new(-284.388458, 15.1148872, 88.0397873, 0, 0, -1, 0, 1, 0, 1, 0, 0))
+addTeleportButton("Teleport Banco", CFrame.new(-27.2709007, 11.5685892, 418.200653, 1, 0, 0, 0, 1, 0, 0, 0, 1))
+addTeleportButton("Teleport Ilegal", CFrame.new(12037.2705, 27.5305443, 12794.0635, 0.965929627, -0, -0.258804798, 0, 1, -0, 0.258804798, 0, 0.965929627))
+addTeleportButton("Teleport PrÃ©dio 1", CFrame.new(-1595.23328, 204.074341, 555.895386, 0.939687431, -0.34203434, 1.81794167e-06, 1.81794167e-06, 1.02519989e-05, 1, -0.34203434, -0.93968749, 1.02519989e-05))
+addTeleportButton("Teleport Devs Mini City", CFrame.new(2555.44263, 303.167755, -1004.13763))
