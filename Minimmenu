@@ -1,198 +1,935 @@
 local Players = game:GetService("Players")
-local Player = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 
--- Carrega o Aimbot
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/Aimbot-V2/main/Resources/Scripts/Raw%20Main.lua"))()
+local player = Players.LocalPlayer
 
--- Carrega o Rayfield
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "KavoUIClone"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game:GetService("CoreGui")
 
--- ConfiguraÃ§Ãµes padrÃ£o do Aimbot
-if not getgenv().Aimbot then
-    getgenv().Aimbot = {
-        Settings = {
-            Enabled = false,
-            AliveCheck = false,
-            TeamCheck = false,
-            Sensitivity = 0,
-            LockPart = "Head",
-            SaveSettings = true,
-            TriggerKey = "MouseButton2"
-        },
-        FOVSettings = {
-            Enabled = false,
-            Color = "255, 255, 255",
-            Amount = 90
-        }
-    }
+local function UICorner(parent, radius)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, radius)
+    c.Parent = parent
 end
 
--- CriaÃ§Ã£o da janela
-local Window = Rayfield:CreateWindow({
-    Name = "MINI HUB FREE",
-    LoadingTitle = "HUB MENU",
-    LoadingSubtitle = "MINI HUB SUS",
-    ConfigurationSaving = {
-        Enabled = true,
-        FolderName = "AimbotConfig",
-        FileName = "Settings.json"
-    },
-    Discord = {
-        Enabled = false,
-        Invite = "noinvite",
-        RememberJoins = true
-    }
-})
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 600, 0, 400)
+MainFrame.Position = UDim2.new(0.5, -300, 0.5, -200)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = ScreenGui
+MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+MainFrame.ClipsDescendants = true
+UICorner(MainFrame, 8)
 
--- Aba de Aimbot
-local Tab = Window:CreateTab("Aimbot-PC")
+local Shadow = Instance.new("Frame")
+Shadow.Name = "Shadow"
+Shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Shadow.Size = MainFrame.Size + UDim2.new(0, 10, 0, 10)
+Shadow.Position = MainFrame.Position - UDim2.new(0, 5, 0, 5)
+Shadow.BackgroundTransparency = 0.75
+Shadow.BorderSizePixel = 0
+Shadow.ZIndex = 0
+Shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+Shadow.Parent = ScreenGui
+UICorner(Shadow, 8)
 
--- SeÃ§Ã£o de configuraÃ§Ã£o do Aimbot
-local Section11 = Tab:CreateSection("aim config")
+MainFrame:GetPropertyChangedSignal("Position"):Connect(function()
+    Shadow.Position = MainFrame.Position - UDim2.new(0,5,0,5)
+end)
+MainFrame:GetPropertyChangedSignal("Size"):Connect(function()
+    Shadow.Size = MainFrame.Size + UDim2.new(0,10,0,10)
+end)
 
-Tab:CreateToggle({
-    Name = "ativar aimbot",
-    CurrentValue = getgenv().Aimbot.Settings.Enabled,
-    Flag = "AimbotEnabled",
-    Callback = function(Value)
-        getgenv().Aimbot.Settings.Enabled = Value
-    end,
-})
+local TitleBar = Instance.new("Frame")
+TitleBar.Name = "TitleBar"
+TitleBar.Size = UDim2.new(1, 0, 0, 40)
+TitleBar.BackgroundColor3 = Color3.fromRGB(45, 45, 80)
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = MainFrame
+UICorner(TitleBar, 8)
 
-Tab:CreateToggle({
-    Name = "verificar se estÃ¡ vivo",
-    CurrentValue = getgenv().Aimbot.Settings.AliveCheck,
-    Flag = "AliveCheck",
-    Callback = function(Value)
-        getgenv().Aimbot.Settings.AliveCheck = Value
-    end,
-})
+local Title = Instance.new("TextLabel")
+Title.Name = "Title"
+Title.Text = "Kavo UI"
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 22
+Title.TextColor3 = Color3.fromRGB(230, 230, 255)
+Title.BackgroundTransparency = 1
+Title.Size = UDim2.new(1, -100, 1, 0)
+Title.Position = UDim2.new(0, 20, 0, 0)
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = TitleBar
 
-Tab:CreateToggle({
-    Name = "verificar time",
-    CurrentValue = getgenv().Aimbot.Settings.TeamCheck,
-    Flag = "TeamCheck",
-    Callback = function(Value)
-        getgenv().Aimbot.Settings.TeamCheck = Value
-    end,
-})
+local MinimizeButton = Instance.new("TextButton")
+MinimizeButton.Name = "MinimizeButton"
+MinimizeButton.Size = UDim2.new(0, 35, 0, 30)
+MinimizeButton.Position = UDim2.new(1, -80, 0, 5)
+MinimizeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 100)
+MinimizeButton.Text = "-"
+MinimizeButton.TextColor3 = Color3.fromRGB(200, 200, 255)
+MinimizeButton.Font = Enum.Font.GothamBold
+MinimizeButton.TextSize = 25
+MinimizeButton.AutoButtonColor = false
+MinimizeButton.Parent = TitleBar
+UICorner(MinimizeButton, 6)
 
-Tab:CreateSlider({
-    Name = "sensibilidade do aimbot",
-    Range = {0, 1},
-    Increment = 0.1,
-    Suffix = "s",
-    CurrentValue = getgenv().Aimbot.Settings.Sensitivity,
-    Flag = "Sensitivity",
-    Callback = function(Value)
-        getgenv().Aimbot.Settings.Sensitivity = Value
-    end,
-})
+MinimizeButton.MouseEnter:Connect(function()
+    MinimizeButton.BackgroundColor3 = Color3.fromRGB(100, 100, 150)
+end)
+MinimizeButton.MouseLeave:Connect(function()
+    MinimizeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 100)
+end)
 
--- SeÃ§Ã£o de configuraÃ§Ã£o do FOV
-local Section = Tab:CreateSection("fov config")
+local CloseButton = Instance.new("TextButton")
+CloseButton.Name = "CloseButton"
+CloseButton.Size = UDim2.new(0, 35, 0, 30)
+CloseButton.Position = UDim2.new(1, -40, 0, 5)
+CloseButton.BackgroundColor3 = Color3.fromRGB(200, 40, 60)
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.TextSize = 25
+CloseButton.AutoButtonColor = false
+CloseButton.Parent = TitleBar
+UICorner(CloseButton, 6)
 
-Tab:CreateToggle({
-    Name = "ativar fov",
-    CurrentValue = getgenv().Aimbot.FOVSettings.Enabled,
-    Flag = "FOVEnabled",
-    Callback = function(Value)
-        getgenv().Aimbot.FOVSettings.Enabled = Value
-    end,
-})
+CloseButton.MouseEnter:Connect(function()
+    CloseButton.BackgroundColor3 = Color3.fromRGB(255, 70, 90)
+end)
+CloseButton.MouseLeave:Connect(function()
+    CloseButton.BackgroundColor3 = Color3.fromRGB(200, 40, 60)
+end)
 
-Tab:CreateSlider({
-    Name = "tamanho do fov",
-    Range = {0, 360},
-    Increment = 1,
-    Suffix = "Â°",
-    CurrentValue = getgenv().Aimbot.FOVSettings.Amount,
-    Flag = "FOVSize",
-    Callback = function(Value)
-        getgenv().Aimbot.FOVSettings.Amount = Value
-    end,
-})
+local Sidebar = Instance.new("Frame")
+Sidebar.Name = "Sidebar"
+Sidebar.BackgroundColor3 = Color3.fromRGB(38, 38, 68)
+Sidebar.Size = UDim2.new(0, 140, 1, -40)
+Sidebar.Position = UDim2.new(0, 0, 0, 40)
+Sidebar.Parent = MainFrame
+UICorner(Sidebar, 8)
 
-Tab:CreateButton({
-    Name = "salvar configuraÃ§Ãµes",
-    Callback = function()
-        getgenv().Aimbot.Settings.SaveSettings = true
-        Rayfield:Notify({
-            Title = "ConfiguraÃ§Ãµes Salvas",
-            Content = "Suas configuraÃ§Ãµes foram salvas.",
-            Duration = 3,
-            Image = 4483362458,
-            Actions = {
-                Ignore = {
-                    Name = "Ok",
-                    Callback = function()
-                        print("ConfiguraÃ§Ãµes salvas.")
-                    end
-                },
-            },
-        })
-    end,
-})
+local TabListLayout = Instance.new("UIListLayout")
+TabListLayout.Padding = UDim.new(0, 10)
+TabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+TabListLayout.Parent = Sidebar
 
--- Aba de Auto CL (Auto Kick)
-local AutoCLTab = Window:CreateTab("Auto CL", 4483362458)
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Name = "ContentFrame"
+ContentFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+ContentFrame.Size = UDim2.new(1, -140, 1, -40)
+ContentFrame.Position = UDim2.new(0, 140, 0, 40)
+ContentFrame.Parent = MainFrame
+UICorner(ContentFrame, 8)
 
-local AutoCLSection = AutoCLTab:CreateSection("ConfiguraÃ§Ã£o de Auto Kick")
+local tabs = {}
+local contents = {}
 
-AutoCLTab:CreateToggle({
-    Name = "Ativar Auto CL (kick)",
-    CurrentValue = getgenv().KickOnLowHealth or false,
-    Flag = "AutoKickToggle",
-    Callback = function(Value)
-        getgenv().KickOnLowHealth = Value
-    end,
-})
+local function createTab(name)
+    local button = Instance.new("TextButton")
+    button.Name = name.."Tab"
+    button.Size = UDim2.new(1, -10, 0, 40)
+    button.BackgroundColor3 = Color3.fromRGB(45, 45, 80)
+    button.Text = name
+    button.Font = Enum.Font.GothamSemibold
+    button.TextSize = 18
+    button.TextColor3 = Color3.fromRGB(190, 190, 255)
+    button.AutoButtonColor = false
+    button.Parent = Sidebar
+    UICorner(button, 6)
 
-AutoCLTab:CreateSlider({
-    Name = "Kick quando vida for menor ou igual a",
-    Range = {0, 100},
-    Increment = 1,
-    Suffix = " HP",
-    CurrentValue = getgenv().HealthThreshold or 10,
-    Flag = "HealthThresholdSlider",
-    Callback = function(Value)
-        getgenv().HealthThreshold = Value
-    end,
-})
+    button.MouseEnter:Connect(function()
+        if not button:GetAttribute("Selected") then
+            button.BackgroundColor3 = Color3.fromRGB(70, 70, 120)
+            button.TextColor3 = Color3.fromRGB(255, 255, 255)
+        end
+    end)
+    button.MouseLeave:Connect(function()
+        if not button:GetAttribute("Selected") then
+            button.BackgroundColor3 = Color3.fromRGB(45, 45, 80)
+            button.TextColor3 = Color3.fromRGB(190, 190, 255)
+        end
+    end)
 
--- Aba de Teleport
-local TeleportTab = Window:CreateTab("Teleport")
+    local content = Instance.new("Frame")
+    content.Name = name.."Content"
+    content.Size = UDim2.new(1, -20, 1, -20)
+    content.Position = UDim2.new(0, 10, 0, 10)
+    content.BackgroundTransparency = 1
+    content.Visible = false
+    content.Parent = ContentFrame
 
-local Section = TeleportTab:CreateSection("TELEPORTS")
+    local contentLayout = Instance.new("UIListLayout")
+    contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    contentLayout.Padding = UDim.new(0, 8)
+    contentLayout.Parent = content
 
-local function addTeleportButton(name, cframe)
-    TeleportTab:CreateButton({
-        Name = name,
-        Callback = function()
-            local player = game.Players.LocalPlayer
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                player.Character:SetPrimaryPartCFrame(cframe + Vector3.new(0, 3, 0))
+    tabs[name] = button
+    contents[name] = content
+
+    button.MouseButton1Click:Connect(function()
+        selectTab(name)
+    end)
+
+    return button, content
+end
+
+local currentTab = nil
+function selectTab(name)
+    if currentTab == name then return end
+    for tabName, btn in pairs(tabs) do
+        if tabName == name then
+            btn.BackgroundColor3 = Color3.fromRGB(70, 70, 120)
+            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            btn:SetAttribute("Selected", true)
+            contents[tabName].Visible = true
+        else
+            btn.BackgroundColor3 = Color3.fromRGB(45, 45, 80)
+            btn.TextColor3 = Color3.fromRGB(190, 190, 255)
+            btn:SetAttribute("Selected", false)
+            contents[tabName].Visible = false
+        end
+    end
+    currentTab = name
+end
+
+local function createToggle(parent, text, default, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 0, 30)
+    frame.BackgroundTransparency = 1
+    frame.Parent = parent
+
+    local label = Instance.new("TextLabel")
+    label.Text = text
+    label.Font = Enum.Font.GothamSemibold
+    label.TextSize = 17
+    label.TextColor3 = Color3.fromRGB(220, 220, 255)
+    label.BackgroundTransparency = 1
+    label.Size = UDim2.new(1, -50, 1, 0)
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = frame
+
+    local toggleBtn = Instance.new("Frame")
+    toggleBtn.Size = UDim2.new(0, 38, 0, 22)
+    toggleBtn.Position = UDim2.new(1, -42, 0, 4)
+    toggleBtn.BackgroundColor3 = default and Color3.fromRGB(0, 200, 130) or Color3.fromRGB(40, 40, 50)
+    toggleBtn.Parent = frame
+    UICorner(toggleBtn, 12)
+
+    local circle = Instance.new("Frame")
+    circle.Size = UDim2.new(0, 18, 0, 18)
+    circle.Position = default and UDim2.new(1, -18, 0, 2) or UDim2.new(0, 2, 0, 2)
+    circle.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+    circle.Parent = toggleBtn
+    UICorner(circle, 9)
+
+    local toggled = default
+    local function updateToggle()
+        if toggled then
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 130)
+            circle:TweenPosition(UDim2.new(1, -18, 0, 2), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.15, true)
+        else
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+            circle:TweenPosition(UDim2.new(0, 2, 0, 2), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.15, true)
+        end
+    end
+
+    toggleBtn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            toggled = not toggled
+            updateToggle()
+            if callback then callback(toggled) end
+        end
+    end)
+
+    updateToggle()
+
+    return toggleBtn, function() return toggled end
+end
+
+local function createSlider(parent, text, min, max, default, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 0, 40)
+    frame.BackgroundTransparency = 1
+    frame.Parent = parent
+
+    local label = Instance.new("TextLabel")
+    label.Text = text
+    label.Font = Enum.Font.GothamSemibold
+    label.TextSize = 17
+    label.TextColor3 = Color3.fromRGB(220, 220, 255)
+    label.BackgroundTransparency = 1
+    label.Size = UDim2.new(1, -60, 0.5, 0)
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = frame
+
+    local valueLabel = Instance.new("TextLabel")
+    valueLabel.Text = tostring(default)
+    valueLabel.Font = Enum.Font.GothamSemibold
+    valueLabel.TextSize = 17
+    valueLabel.TextColor3 = Color3.fromRGB(180, 180, 255)
+    valueLabel.BackgroundTransparency = 1
+    valueLabel.Size = UDim2.new(0, 50, 0.5, 0)
+    valueLabel.Position = UDim2.new(1, -50, 0, 0)
+    valueLabel.Parent = frame
+
+    local sliderBar = Instance.new("Frame")
+    sliderBar.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
+    sliderBar.Size = UDim2.new(1, -10, 0, 10)
+    sliderBar.Position = UDim2.new(0, 5, 1, -20)
+    sliderBar.Parent = frame
+    UICorner(sliderBar, 6)
+
+    local sliderFill = Instance.new("Frame")
+    sliderFill.BackgroundColor3 = Color3.fromRGB(0, 170, 220)
+    sliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+    sliderFill.Parent = sliderBar
+    UICorner(sliderFill, 6)
+
+    local dragging = false
+
+    sliderBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            local mouse = game.Players.LocalPlayer:GetMouse()
+            local relativeX = math.clamp(mouse.X - sliderBar.AbsolutePosition.X, 0, sliderBar.AbsoluteSize.X)
+            local percent = relativeX / sliderBar.AbsoluteSize.X
+            local value = math.floor(min + (max - min) * percent)
+            sliderFill.Size = UDim2.new(percent, 0, 1, 0)
+            valueLabel.Text = tostring(value)
+            if callback then callback(value) end
+        end
+    end)
+
+    sliderBar.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+
+    sliderBar.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local mouse = game.Players.LocalPlayer:GetMouse()
+            local relativeX = math.clamp(mouse.X - sliderBar.AbsolutePosition.X, 0, sliderBar.AbsoluteSize.X)
+            local percent = relativeX / sliderBar.AbsoluteSize.X
+            local value = math.floor(min + (max - min) * percent)
+            sliderFill.Size = UDim2.new(percent, 0, 1, 0)
+            valueLabel.Text = tostring(value)
+            if callback then callback(value) end
+        end
+    end)
+
+    return frame
+end
+
+local function createButton(parent, text, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 35)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 80)
+    btn.TextColor3 = Color3.fromRGB(220, 220, 255)
+    btn.Text = text
+    btn.Font = Enum.Font.GothamSemibold
+    btn.TextSize = 18
+    btn.AutoButtonColor = false
+    btn.Parent = parent
+    UICorner(btn, 8)
+
+    btn.MouseEnter:Connect(function()
+        btn.BackgroundColor3 = Color3.fromRGB(70, 70, 120)
+    end)
+    btn.MouseLeave:Connect(function()
+        btn.BackgroundColor3 = Color3.fromRGB(50, 50, 80)
+    end)
+
+    btn.MouseButton1Click:Connect(function()
+        if callback then callback() end
+    end)
+
+    return btn
+end
+
+-- Variáveis de estado dos sistemas
+local state = {
+    aimbot = false,
+    triggerbot = false,
+    silentaim = false,
+    espPlayers = false,
+    espItems = false,
+    chams = false,
+    fly = false,
+    noclip = false,
+    fov = 70,
+    speed = 16,
+}
+
+local tabCombat, contentCombat = createTab("Combat")
+local tabVisuals, contentVisuals = createTab("Visuals")
+local tabUtility, contentUtility = createTab("Utility")
+local tabSettings, contentSettings = createTab("Settings")
+
+selectTab("Combat")
+
+local toggleAimbot, getAimbot = createToggle(contentCombat, "Aimbot", state.aimbot, function(val)
+    state.aimbot = val
+    print("Aimbot:", val)
+    -- Aqui pode adicionar ativação real do aimbot
+end)
+
+local toggleTrigger, getTrigger = createToggle(contentCombat, "Trigger Bot", state.triggerbot, function(val)
+    state.triggerbot = val
+    print("Trigger Bot:", val)
+end)
+
+local toggleSilent, getSilent = createToggle(contentCombat, "Silent Aim", state.silentaim, function(val)
+    state.silentaim = val
+    print("Silent Aim:", val)
+end)
+
+createSlider(contentCombat, "FOV", 10, 180, state.fov, function(val)
+    state.fov = val
+    print("FOV ajustado para:", val)
+end)
+
+selectTab("Visuals")
+
+local toggleESPPlayers, getESPPlayers = createToggle(contentVisuals, "ESP Players", state.espPlayers, function(val)
+    state.espPlayers = val
+    print("ESP Players:", val)
+end)
+
+local toggleESPItems, getESPItems = createToggle(contentVisuals, "ESP Items", state.espItems, function(val)
+    state.espItems = val
+    print("ESP Items:", val)
+end)
+
+local toggleChams, getChams = createToggle(contentVisuals, "Chams", state.chams, function(val)
+    state.chams = val
+    print("Chams:", val)
+end)
+
+selectTab("Utility")
+
+local toggleFly, getFly = createToggle(contentUtility, "Fly", state.fly, function(val)
+    state.fly = val
+    print("Fly:", val)
+end)
+
+local toggleNoClip, getNoClip = createToggle(contentUtility, "No Clip", state.noclip, function(val)
+    state.noclip = val
+    print("No Clip:", val)
+end)
+
+createSlider(contentUtility, "Speed", 8, 100, state.speed, function(val)
+    state.speed = val
+    print("Speed ajustada para:", val)
+end)
+
+createButton(contentUtility, "Auto Farm", function()
+    print("Auto Farm ativado")
+    -- Função auto farm real aqui
+end)
+
+selectTab("Settings")
+
+local info = Instance.new("TextLabel")
+info.Text = "Clique em 'Escolher tecla' e pressione a tecla desejada para minimizar/restaurar o menu"
+info.Font = Enum.Font.Gotham
+info.TextSize = 15
+info.TextColor3 = Color3.fromRGB(180, 180, 200)
+info.BackgroundTransparency = 1
+info.Size = UDim2.new(1, -20, 0, 50)
+info.Position = UDim2.new(0, 10, 0, 10)
+info.TextWrapped = true
+info.Parent = contentSettings
+
+local chooseKeyButton = createButton(contentSettings, "Escolher tecla", nil)
+chooseKeyButton.Size = UDim2.new(0, 130, 0, 30)
+chooseKeyButton.Position = UDim2.new(0, 10, 0, 70)
+
+local selectedKey = Enum.KeyCode.K
+chooseKeyButton.Text = "Tecla atual: "..selectedKey.Name
+
+local choosingKey = false
+
+chooseKeyButton.MouseButton1Click:Connect(function()
+    if choosingKey then return end
+    choosingKey = true
+    chooseKeyButton.Text = "Pressione uma tecla..."
+end)
+
+UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    if choosingKey and input.UserInputType == Enum.UserInputType.Keyboard then
+        selectedKey = input.KeyCode
+        chooseKeyButton.Text = "Tecla atual: "..selectedKey.Name
+        choosingKey = false
+        return
+    end
+    if input.KeyCode == selectedKey then
+        if ScreenGui.Enabled then
+            -- Animar fechamento
+            local tweenClose = TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {BackgroundTransparency = 1, Size = UDim2.new(0, 0, 0, 0)})
+            tweenClose:Play()
+            tweenClose.Completed:Wait()
+            ScreenGui.Enabled = false
+            -- Reset propriedades para abrir depois
+            MainFrame.Size = UDim2.new(0, 600, 0, 400)
+            MainFrame.BackgroundTransparency = 0
+        else
+            ScreenGui.Enabled = true
+            MainFrame.BackgroundTransparency = 1
+            MainFrame.Size = UDim2.new(0, 0, 0, 0)
+            local tweenOpen = TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0, Size = UDim2.new(0, 600, 0, 400)})
+            tweenOpen:Play()
+        end
+    end
+end)
+
+MinimizeButton.MouseButton1Click:Connect(function()
+    if ScreenGui.Enabled then
+        local tweenClose = TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {BackgroundTransparency = 1, Size = UDim2.new(0, 0, 0, 0)})
+        tweenClose:Play()
+        tweenClose.Completed:Wait()
+        ScreenGui.Enabled = false
+        MainFrame.Size = UDim2.new(0, 600, 0, 400)
+        MainFrame.BackgroundTransparency = 0
+    else
+        ScreenGui.Enabled = true
+        MainFrame.BackgroundTransparency = 1
+        MainFrame.Size = UDim2.new(0, 0, 0, 0)
+        local tweenOpen = TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0, Size = UDim2.new(0, 600, 0, 400)})
+        tweenOpen:Play()
+    end
+end)
+
+CloseButton.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+-- Dragging (igual antes)
+local dragging = false
+local dragInput, dragStart, startPos
+
+MainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
             end
-        end,
-    })
+        end)
+    end
+end)
+
+MainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        Shadow.Position = MainFrame.Position - UDim2.new(0,5,0,5)
+    end
+end)
+
+VisualsTab:CreateToggle({
+    Name = "ESP Caixa Vermelha",
+    CurrentValue = false,
+    Flag = "ESPBox",
+    Callback = function(state)
+        local Players = game:GetService("Players")
+        local RunService = game:GetService("RunService")
+        local Camera = workspace.CurrentCamera
+        local LocalPlayer = Players.LocalPlayer
+
+        if not Drawing then return end
+
+        if state then
+            local ESPFolder = Instance.new("Folder", game.CoreGui)
+            ESPFolder.Name = "ESP_Boxes"
+
+            local function CreateESPBox(player)
+                local box = Drawing.new("Square")
+                box.Thickness = 1
+                box.Color = Color3.fromRGB(255, 0, 0)
+                box.Transparency = 1
+                box.Filled = false
+
+                local connection
+                connection = RunService.RenderStepped:Connect(function()
+                    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
+                        local rootPart = player.Character.HumanoidRootPart
+                        local vector, onscreen = Camera:WorldToViewportPoint(rootPart.Position)
+
+                        if onscreen then
+                            local size = (Camera:WorldToViewportPoint(rootPart.Position + Vector3.new(2, 3, 0)).Y - Camera:WorldToViewportPoint(rootPart.Position - Vector3.new(2, 3, 0)).Y)
+                            box.Size = Vector2.new(size / 1.5, size)
+                            box.Position = Vector2.new(vector.X - box.Size.X / 2, vector.Y - box.Size.Y / 2)
+                            box.Visible = true
+                        else
+                            box.Visible = false
+                        end
+                    else
+                        box.Visible = false
+                    end
+                end)
+
+                player.AncestryChanged:Connect(function(_, parent)
+                    if not parent then
+                        box:Remove()
+                        connection:Disconnect()
+                    end
+                end)
+
+                table.insert(ESPFolder:GetChildren(), box)
+            end
+
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer then
+                    CreateESPBox(player)
+                end
+            end
+
+            Players.PlayerAdded:Connect(function(player)
+                if player ~= LocalPlayer then
+                    CreateESPBox(player)
+                end
+            end)
+        else
+            local espFolder = game.CoreGui:FindFirstChild("ESP_Boxes")
+            if espFolder then
+                for _, v in ipairs(espFolder:GetChildren()) do
+                    if typeof(v) == "Drawing" then
+                        v:Remove()
+                    end
+                end
+                espFolder:Destroy()
+            end
+        end
+    end
+})
+
+UtilidadesTab:CreateButton({
+    Name = "Teleportar para jogador",
+    Callback = function()
+        local Players = game:GetService("Players")
+        local LocalPlayer = Players.LocalPlayer
+        local CoreGui = game:GetService("CoreGui")
+        local UserInputService = game:GetService("UserInputService")
+        local RunService = game:GetService("RunService")
+
+        -- Cria GUI se não existir
+        if CoreGui:FindFirstChild("TeleportUI") then
+            CoreGui.TeleportUI:Destroy()
+        end
+
+        local ScreenGui = Instance.new("ScreenGui")
+        ScreenGui.Name = "TeleportUI"
+        ScreenGui.ResetOnSpawn = false
+        ScreenGui.Parent = CoreGui
+
+        local Frame = Instance.new("Frame")
+        Frame.Size = UDim2.new(0, 300, 0, 150)
+        Frame.Position = UDim2.new(0.5, -150, 0.5, -75)
+        Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+        Frame.AnchorPoint = Vector2.new(0.5, 0.5)
+        Frame.BorderSizePixel = 0
+        Frame.Active = true
+        Frame.Draggable = true
+        Frame.Parent = ScreenGui
+
+        local UICorner = Instance.new("UICorner", Frame)
+        UICorner.CornerRadius = UDim.new(0, 8)
+
+        local Label = Instance.new("TextLabel")
+        Label.Text = "Digite o nome do jogador:"
+        Label.Size = UDim2.new(1, -20, 0, 25)
+        Label.Position = UDim2.new(0, 10, 0, 10)
+        Label.BackgroundTransparency = 1
+        Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+        Label.Font = Enum.Font.Gotham
+        Label.TextSize = 18
+        Label.TextXAlignment = Enum.TextXAlignment.Left
+        Label.Parent = Frame
+
+        local TextBox = Instance.new("TextBox")
+        TextBox.PlaceholderText = "Nome ou display"
+        TextBox.Size = UDim2.new(1, -20, 0, 35)
+        TextBox.Position = UDim2.new(0, 10, 0, 45)
+        TextBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+        TextBox.Font = Enum.Font.Gotham
+        TextBox.TextSize = 20
+        TextBox.ClearTextOnFocus = false
+        TextBox.Parent = Frame
+
+        local TextBoxCorner = Instance.new("UICorner", TextBox)
+        TextBoxCorner.CornerRadius = UDim.new(0, 6)
+
+        local TeleportButton = Instance.new("TextButton")
+        TeleportButton.Text = "Teleportar"
+        TeleportButton.Size = UDim2.new(1, -20, 0, 40)
+        TeleportButton.Position = UDim2.new(0, 10, 0, 90)
+        TeleportButton.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+        TeleportButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        TeleportButton.Font = Enum.Font.GothamBold
+        TeleportButton.TextSize = 20
+        TeleportButton.Parent = Frame
+
+        local TeleportButtonCorner = Instance.new("UICorner", TeleportButton)
+        TeleportButtonCorner.CornerRadius = UDim.new(0, 6)
+
+        local CloseButton = Instance.new("TextButton")
+        CloseButton.Text = "✕"
+        CloseButton.Size = UDim2.new(0, 30, 0, 30)
+        CloseButton.Position = UDim2.new(1, -35, 0, 5)
+        CloseButton.BackgroundTransparency = 1
+        CloseButton.TextColor3 = Color3.fromRGB(200, 200, 200)
+        CloseButton.Font = Enum.Font.GothamBold
+        CloseButton.TextSize = 22
+        CloseButton.Parent = Frame
+
+        CloseButton.MouseEnter:Connect(function()
+            CloseButton.TextColor3 = Color3.fromRGB(255, 100, 100)
+        end)
+        CloseButton.MouseLeave:Connect(function()
+            CloseButton.TextColor3 = Color3.fromRGB(200, 200, 200)
+        end)
+        CloseButton.MouseButton1Click:Connect(function()
+            ScreenGui:Destroy()
+        end)
+
+        local function FindPlayerByName(name)
+            name = name:lower()
+            local closestPlayer = nil
+            local shortestDist = math.huge
+
+            for _, plr in pairs(Players:GetPlayers()) do
+                local uname = plr.Name:lower()
+                local dname = plr.DisplayName:lower()
+
+                if uname:find(name) or dname:find(name) then
+                    if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                        local dist = (plr.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                        if dist < shortestDist then
+                            shortestDist = dist
+                            closestPlayer = plr
+                        end
+                    end
+                end
+            end
+            return closestPlayer
+        end
+
+        TeleportButton.MouseButton1Click:Connect(function()
+            local input = TextBox.Text
+            if input == "" then return end
+            local target = FindPlayerByName(input)
+            if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if root then
+                    root.CFrame = target.Character.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
+                end
+            end
+        end)
+
+        UserInputService.InputBegan:Connect(function(input, gameProcessed)
+            if not gameProcessed and input.KeyCode == Enum.KeyCode.Escape then
+                ScreenGui:Destroy()
+            end
+        end)
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Name = "ESP Box 3D",
+    CurrentValue = false,
+    Flag = "ESPBox3D",
+    Callback = function(state)
+        if state then
+            local Players = game:GetService("Players")
+            local RunService = game:GetService("RunService")
+            local Camera = workspace.CurrentCamera
+            local LocalPlayer = Players.LocalPlayer
+
+            local ESPFolder = Instance.new("Folder", game.CoreGui)
+            ESPFolder.Name = "ESP_Boxes"
+
+            local function CreateESPBox(player)
+                local box = Drawing.new("Square")
+                box.Thickness = 1
+                box.Color = Color3.fromRGB(255, 0, 0)
+                box.Transparency = 1
+                box.Filled = false
+
+                local connection
+                connection = RunService.RenderStepped:Connect(function()
+                    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
+                        local rootPart = player.Character.HumanoidRootPart
+                        local vector, onscreen = Camera:WorldToViewportPoint(rootPart.Position)
+
+                        if onscreen then
+                            local size = (Camera:WorldToViewportPoint(rootPart.Position + Vector3.new(2, 3, 0)).Y - Camera:WorldToViewportPoint(rootPart.Position - Vector3.new(2, 3, 0)).Y)
+                            box.Size = Vector2.new(size / 1.5, size)
+                            box.Position = Vector2.new(vector.X - box.Size.X / 2, vector.Y - box.Size.Y / 2)
+                            box.Visible = true
+                        else
+                            box.Visible = false
+                        end
+                    else
+                        box.Visible = false
+                    end
+                end)
+
+                player.AncestryChanged:Connect(function(_, parent)
+                    if not parent then
+                        box:Remove()
+                        connection:Disconnect()
+                    end
+                end)
+            end
+
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer then
+                    CreateESPBox(player)
+                end
+            end
+
+            Players.PlayerAdded:Connect(function(player)
+                if player ~= LocalPlayer then
+                    CreateESPBox(player)
+                end
+            end)
+        else
+            local folder = game.CoreGui:FindFirstChild("ESP_Boxes")
+            if folder then folder:Destroy() end
+        end
+    end,
+})
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+
+local noClipConnection
+
+local function enableWallOnlyNoClip(char)
+    noClipConnection = RunService.Stepped:Connect(function()
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") and part.CanCollide == true then
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local isFloor = part.Position.Y < hrp.Position.Y - 2
+                        and math.abs(part.Size.Y) > math.abs(part.Size.X)
+                        and math.abs(part.Size.Y) > math.abs(part.Size.Z)
+                    if not isFloor then
+                        part.CanCollide = false
+                    else
+                        part.CanCollide = true
+                    end
+                end
+            end
+        end
+    end)
 end
 
--- BotÃµes de teleporte corrigidos com nomes UTF-8
-addTeleportButton("Teleport PraÃ§a", CFrame.new(-291.579559, 3.26299787, 342.192535))
-addTeleportButton("Teleport GÃ¡s", CFrame.new(-469.959015, 3.25349784, -54.3936005))
-addTeleportButton("Teleport HP", CFrame.new(-543.439941, 3.26299858, 645.16864))
-addTeleportButton("Teleport Tabacaria", CFrame.new(-83.1141129, 13.1430578, 74.7073364))
-addTeleportButton("Teleport Garagem", CFrame.new(-466.870148, 7.64567232, 350.242737))
-addTeleportButton("Teleport ConcessionÃ¡ria", CFrame.new(-91.3902893, 8.07136822, 520.355347))
-addTeleportButton("Teleport Gari", CFrame.new(-518.672852, 3.16749811, -1.16962147, 0, 0, -1, 0, 1, 0, 1, 0, 0))
-addTeleportButton("Teleport ImobiliÃ¡ria", CFrame.new(-284.904785, 8.26088619, -72.2896194, 0, 0, -1, 0, 1, 0, 1, 0, 0))
-addTeleportButton("Teleport PM", CFrame.new(-980.181458, 2.27553082, 467.080536, 1, 0, 0, 0, 1, 0, 0, 0, 1))
-addTeleportButton("Teleport PRF", CFrame.new(6662.24512, 36.6637421, 5047.83838, 0.707134247, 0, 0.707079291, 0, 1, 0, -0.707079291, 0, 0.707134247))
-addTeleportButton("Teleport MineraÃ§Ã£o", CFrame.new(201.932144, 2.76136589, 145.50531, 0, 0, 1, 0, 1, -0, -1, 0, 0))
-addTeleportButton("Teleport MecÃ¢nica", CFrame.new(-180.608261, 3.29813337, -532.4151, 0.422592998, -0, -0.906319618, 0, 1, -0, 0.906319618, 0, 0.422592998))
-addTeleportButton("Teleport Fazenda", CFrame.new(817.243225, 3.26249814, -87.316864, 0, 0, 1, 0, 1, 0, -1, 0, 0))
-addTeleportButton("Teleport Prefeitura", CFrame.new(-284.388458, 15.1148872, 88.0397873, 0, 0, -1, 0, 1, 0, 1, 0, 0))
-addTeleportButton("Teleport Banco", CFrame.new(-27.2709007, 11.5685892, 418.200653, 1, 0, 0, 0, 1, 0, 0, 0, 1))
-addTeleportButton("Teleport Ilegal", CFrame.new(12037.2705, 27.5305443, 12794.0635, 0.965929627, -0, -0.258804798, 0, 1, -0, 0.258804798, 0, 0.965929627))
-addTeleportButton("Teleport PrÃ©dio 1", CFrame.new(-1595.23328, 204.074341, 555.895386, 0.939687431, -0.34203434, 1.81794167e-06, 1.81794167e-06, 1.02519989e-05, 1, -0.34203434, -0.93968749, 1.02519989e-05))
-addTeleportButton("Teleport Devs Mini City", CFrame.new(2555.44263, 303.167755, -1004.13763))
+local function disableNoClip()
+    if noClipConnection then
+        noClipConnection:Disconnect()
+        noClipConnection = nil
+    end
+    -- Restaura colisão para todas as partes do personagem
+    local char = player.Character
+    if char then
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+            end
+        end
+    end
+end
+
+local function toggleNoClip(state)
+    if state then
+        local char = player.Character
+        if char then
+            enableWallOnlyNoClip(char)
+        end
+        player.CharacterAdded:Connect(function(char)
+            wait(1)
+            enableWallOnlyNoClip(char)
+        end)
+    else
+        disableNoClip()
+    end
+end
+
+-- No seu menu, insira o toggle assim:
+
+local toggleNoClipBtn, getNoClipState = createToggle(contentUtility, "NoClip (Wall Only)", false, function(state)
+    toggleNoClip(state)
+end)
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local UIS = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+local AimbotAtivo = false
+local aimbotConnection
+
+local function getClosestPlayer()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            local head = player.Character.Head
+            local screenPoint, onScreen = Camera:WorldToViewportPoint(head.Position)
+            if onScreen then
+                local distance = (Vector2.new(screenPoint.X, screenPoint.Y) - UIS:GetMouseLocation()).Magnitude
+                if distance < shortestDistance then
+                    shortestDistance = distance
+                    closestPlayer = head
+                end
+            end
+        end
+    end
+
+    return closestPlayer
+end
+
+local function toggleAimbot(state)
+    AimbotAtivo = state
+    if AimbotAtivo then
+        aimbotConnection = RunService.RenderStepped:Connect(function()
+            local target = getClosestPlayer()
+            if target then
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
+            end
+        end)
+    else
+        if aimbotConnection then
+            aimbotConnection:Disconnect()
+            aimbotConnection = nil
+        end
+    end
+end
+
+-- Adicione este toggle na aba Visuals do seu menu assim:
+
+local toggleAimbotBtn, getAimbotState = createToggle(contentVisuals, "Aimbot", false, function(state)
+    toggleAimbot(state)
+end)
+
+print("Kavo UI Clone atualizado com minimizar oculto, tecla dinâmica e animação!")
